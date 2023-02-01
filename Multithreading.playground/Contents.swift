@@ -272,3 +272,39 @@ writer.start()
  PrinterThread - exited
  */
 
+// MARK: - ReadWriteLock, SpinLock (deprecated since ios 10) -> UnfairLock since iOs 10
+// Защищаем критическую секцию (Save critical section)
+class ReadWriteLock {
+    private var lock = pthread_rwlock_t()
+    private var attributes = pthread_rwlockattr_t()
+    private var criticalSectionProperty = 0
+    
+    init() {
+        pthread_rwlock_init(&lock, &attributes)
+    }
+    
+    var workProperty: Int {
+        get {
+            pthread_rwlock_wrlock(&lock)
+            let temp = criticalSectionProperty
+            pthread_rwlock_unlock(&lock)
+            return temp
+        }
+        set {
+            pthread_rwlock_wrlock(&lock)
+            criticalSectionProperty = newValue
+            pthread_rwlock_unlock(&lock)
+        }
+    }
+}
+
+class UnfairLock {
+    private var lock = os_unfair_lock_s()
+    var array: [Int] = []
+    
+    func addElement() {
+        os_unfair_lock_lock(&lock)
+        array.append(500)
+        os_unfair_lock_unlock(&lock)
+    }
+}

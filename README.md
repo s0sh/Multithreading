@@ -14,3 +14,6 @@
 - DispatchQueue
 - WorkItems
 - URLSession
+- DispatchSemaphore
+- ConcurrentPerform
+

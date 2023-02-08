@@ -456,7 +456,7 @@ imageView.backgroundColor = UIColor.yellow
 imageView.contentMode = .scaleAspectFit
 view.addSubview(imageView)
 
-PlaygroundPage.current.liveView = view
+//PlaygroundPage.current.liveView = view
 
 func fetchImage() {
     let queue = Queues.get(.utility)()
@@ -508,4 +508,80 @@ func fetchImage3() {
 
 //fetchImage3()
 
+// MARK: - GCD Semaphores
+
+let queue = Queues.get(.cuncurentCustom("GCD Semaphores"))()
+let semaphore = DispatchSemaphore(value: 2) // 2    queues are allowed
+
+queue.async {
+    semaphore.wait() // -1
+    sleep(3)
+    print("Task 1")
+    semaphore.signal() // +1
+}
+
+queue.async {
+    semaphore.wait() // -1
+    sleep(3)
+    print("Task 2")
+    semaphore.signal() // +1
+}
+
+queue.async {
+    semaphore.wait() // -1
+    sleep(3)
+    print("Task 3")
+    semaphore.signal() // +1
+}
+
+let sem = DispatchSemaphore(value: 2)
+
+DispatchQueue.concurrentPerform(iterations: 10) { counter in
+    sem.wait(timeout: DispatchTime.distantFuture)
+    sleep(1)
+    print("Block: ", String(counter))
+    sem.signal()
+}
+
+class SemaphoreTest {
+    private let semaphore = DispatchSemaphore(value: 2) // 2    queues are allowed
+    private var array = [Int]()
+    
+    private func methodWork(_ id: Int) {
+        semaphore.wait() // -1
+        array.append(id)
+        print("test array", array.count)
+        Thread.sleep(forTimeInterval: 2)
+        semaphore.signal()
+    }
+    
+    public func startAllThreads() {
+        Queues.get(.systemGlobal)().async {
+            self.methodWork(111)
+        }
+        
+        Queues.get(.systemGlobal)().async {
+            self.methodWork(122)
+        }
+        
+        Queues.get(.systemGlobal)().async {
+            self.methodWork(133)
+        }
+        
+        Queues.get(.systemGlobal)().async {
+            self.methodWork(144)
+        }
+        
+        Queues.get(.systemGlobal)().async {
+            self.methodWork(155)
+        }
+        
+        Queues.get(.systemGlobal)().async {
+            self.methodWork(157)
+        }
+    }
+}
+
+let semaphoreTest = SemaphoreTest()
+semaphoreTest.startAllThreads()
 

@@ -585,3 +585,201 @@ class SemaphoreTest {
 let semaphoreTest = SemaphoreTest()
 semaphoreTest.startAllThreads()
 
+// MARK: - "Dispatch Group"
+
+let imageULs = ["http://www.planetware.com/photos-large/F/france-paris-eiffel-tower.jpg", "http://adriatic-lines.com/wp-content/uploads/2015/04/canal-of-Venice.jpg",
+    "http://bestkora.com/IosDeveloper/w-content/uploads/2016/12/Screen-Shot-2017-01-17-at-9.33.52-PM.pg",
+    "http://www.picture-newsletter.com/arctic/rctic-12.jpg"]
+
+class DispatchGroupTest {
+    private let queue = Queues.get(.cuncurentCustom("DispatchGroupTest"))()
+    private let group = DispatchGroup()
+    
+    func loadInfo() {
+        queue.async(group: group) {
+            sleep(1)
+            print("1")
+        }
+        
+        queue.async(group: group) {
+            sleep(1)
+            print("2")
+        }
+        
+        queue.async(group: group) {
+            sleep(1)
+            print("3")
+        }
+        
+        queue.async(group: group) {
+            sleep(1)
+            print("4")
+        }
+        
+        group.notify(queue: .main) {
+            print("[DispatchGroupTest] Loading finished")
+        }
+    }
+}
+
+//let dispatchGroupTest = DispatchGroupTest()
+//dispatchGroupTest.loadInfo()
+
+class DispatchGroupTest1 {
+    private let queue = Queues.get(.serialCustom("DispatchGroupTest"))()
+    private let group = DispatchGroup()
+    
+    func loadInfo() {
+        queue.async(group: group) {
+            sleep(1)
+            print("1")
+        }
+        
+        queue.async(group: group) {
+            sleep(1)
+            print("2")
+        }
+        
+        queue.async(group: group) {
+            sleep(1)
+            print("3")
+        }
+        
+        queue.async(group: group) {
+            sleep(1)
+            print("4")
+        }
+        
+        group.notify(queue: .main) {
+            print("[DispatchGroupTest] Loading finished")
+        }
+    }
+}
+
+//let dipatchGrooup1 = DispatchGroupTest1()
+//dipatchGrooup1.loadInfo()
+
+class DispatchGroupTest2 {
+    private let queue = Queues.get(.cuncurentCustom("DispatchGroupTest2"))()
+    private let group = DispatchGroup()
+    
+    final func loadInfo() {
+        group.enter()
+        queue.async {
+            sleep(1)
+            print("1")
+            self.group.leave()
+        }
+        
+        group.enter()
+        queue.async {
+            sleep(1)
+            print("2")
+            self.group.leave()
+        }
+        
+        group.wait() // пока не выполнятся верхние блоки, все что ниже будет ждать завершения
+        print("Finish concurrent queue [DispatchGroupTest2]")
+        group.notify(queue: .main) {
+            print("[DispatchGroupTest - ] Loading finished. Notifyed main queue about it.")
+        }
+    }
+}
+
+let dipatchGrooup2 = DispatchGroupTest2()
+dipatchGrooup2.loadInfo()
+
+//UIButton-UIControl-UIView-UIResponder-NSObject
+
+
+
+class EightImages: UIView {
+    public var ivs = [UIImageView]()
+    
+    public override init(frame: CGRect) {
+        super.init(frame: frame)
+        ivs.append (UIImageView(frame: CGRect(x: 0, y: 0, width: 100, height: 100)))
+        ivs.append (UIImageView(frame: CGRect(x: 0, y: 100, width: 100, height: 100)))
+        ivs.append (UIImageView(frame: CGRect(x: 100, y: 0, width: 100, height: 100)))
+        ivs.append (UIImageView(frame: CGRect(x: 100, y: 100, width: 100, height: 100)))
+        ivs.append (UIImageView(frame: CGRect(x: 0, y: 300, width: 100, height: 100)))
+        ivs.append (UIImageView(frame: CGRect(x: 100, y: 300, width: 100, height: 100)))
+        ivs.append (UIImageView(frame: CGRect(x: 0, y: 400, width: 100, height: 100)))
+        ivs.append (UIImageView(frame: CGRect(x: 100, y: 400, width: 100, height: 100)))
+        
+        for index in 0...7 {
+            ivs[index].contentMode = .scaleAspectFit
+            addSubview(ivs[index])
+        }
+    }
+    
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+    }
+}
+
+let eightImagesView = EightImages(frame: CGRect(x: 0,
+                                                y: 0,
+                                                width: 700,
+                                                height: 900))
+eightImagesView.backgroundColor = .red
+
+PlaygroundPage.current.liveView = eightImagesView
+
+var images = [UIImage]()
+
+   func asyncLoaderImages(imageURL: URL,
+                        runQueue: DispatchQueue,
+                        completionQueue: DispatchQueue,
+                        completion: @escaping (UIImage?, Error?) -> ()) {
+        runQueue.async {
+            do {
+                let data = try Data(contentsOf: imageURL)
+                completionQueue.async { completion(UIImage(data: data), nil) }
+            } catch let error {
+                completionQueue.async { completion(nil, error) }
+            }
+        }
+    
+    }
+
+    func asyncGroup() {
+        let aGroup = DispatchGroup()
+        for index in 0...3 {
+            aGroup.enter()
+            asyncLoaderImages(imageURL: URL(string: imageULs[index])!,
+                              runQueue: .global(qos: .utility),
+                              completionQueue: .main) { (image, error) in
+                guard let image = image else {
+                    print("Image error")
+                    return
+                }
+                
+                images.append(image)
+                aGroup.leave()
+            }
+        }
+        
+        aGroup.notify(queue: .main) {
+            for index in 0...3 {
+                eightImagesView.ivs[index].image = images[index]
+            }
+        }
+    }
+/// Instant loading images
+asyncGroup()
+
+func asyncUrlSession () {
+    for i in 4...7 {
+        let url = URL(string: imageULs[i - 4])
+        let request = URLRequest (url: url!)
+        let task = URLSession.shared.dataTask (with: request) { (data, reponse, error) in
+            DispatchQueue.main.async {
+                eightImagesView.ivs[i].image = UIImage (data: data!)
+            }
+        }
+        task.resume ()
+    }
+}
+/// Ocassionally loading images
+asyncUrlSession ()

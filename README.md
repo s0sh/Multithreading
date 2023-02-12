@@ -16,4 +16,5 @@
 - URLSession
 - DispatchSemaphore
 - ConcurrentPerform
+- DispatchGroup [enter/leave/wait/notify]
 

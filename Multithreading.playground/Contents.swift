@@ -724,7 +724,7 @@ let eightImagesView = EightImages(frame: CGRect(x: 0,
                                                 height: 900))
 eightImagesView.backgroundColor = .red
 
-PlaygroundPage.current.liveView = eightImagesView
+//PlaygroundPage.current.liveView = eightImagesView
 
 var images = [UIImage]()
 
@@ -783,3 +783,36 @@ func asyncUrlSession () {
 }
 /// Ocassionally loading images
 asyncUrlSession ()
+
+
+// - BARRIERS -
+class SafeArray<T> {
+    private var array = [T]()
+    private let queue = DispatchQueue(label: "The Swift Developers",
+                                      attributes: .concurrent)
+   
+    public func append(_ value: T) {
+        // Блокирует все задачи на потоке после себя до того момента, пока не выполнится сам
+        queue.async(flags: .barrier) {
+            self.array.append (value)
+        }
+    }
+    
+    public var valueArray: [T] {
+        var result = [T]()
+        queue.sync {
+            result = self.array
+        }
+        return result
+    }
+    
+}
+
+var arraySafe = SafeArray<Int> ()
+DispatchQueue.concurrentPerform(iterations: 10) { (index) in
+    arraySafe.append (index)
+}
+
+print("arraySafe", arraySafe.valueArray)
+
+//-----------

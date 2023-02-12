@@ -18,3 +18,4 @@
 - ConcurrentPerform
 - DispatchGroup [enter/leave/wait/notify]
 - Difference between Groups and URLSession when loading set of images
+- Async attribute .barrier
